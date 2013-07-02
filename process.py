@@ -169,6 +169,6 @@ def guardar_excel(nome):
 
 
 #fazer automatico com for onde nome toma um nome proprio
-nome='M5_MB_ESQ_ISOM_30'
+nome='../data/M5_MB_ESQ_ISOM_30'
 guardar_excel(str(nome))
 
