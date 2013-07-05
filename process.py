@@ -6,169 +6,101 @@ Created on Tue Jul 02 16:14:14 2013
 """
 
 
-from base64 import *
-from scipy import stats
-from numpy import *
-from pylab import *
-from novainstrumentation import *
+import pylab as py
 import novainstrumentation as ni
-from scipy import *
-import scipy.interpolate as si
-from scipy.interpolate import *
-import matplotlib.pyplot as plt
-import matplotlib.lines
-import scipy as scipy
 from scipy import signal
 import xlwt
-#import process as process
 
-#Constantes
 
-FA = 1000.0 #frequencia de amostragem
-INTERVALO = 300.0 #intervalo de milissegundos para achar a forca maxima media
+#Constants
+FA = 1000.0 #sampling frequency
+INTERVALO = 300.0 #interval to calculate Fmed
 JANELA_RMS = 30.0
 
+#Channels
+C_EMG = 6
+C_POS = 9
+C_TOR = 7
+
+DIRECT = 'Analysis\\'# Data folder is in Documents file
 
 
-'''
-for a in range(0,101): #ver cada sujeito
-    for b in range(0,101): #ver cada ficheiro de cada sujeito
+def filtro(sign, freq, freqs = FA):
+    """Filters"""
+    freqs = float(freqs)/2.0
+    filtr = ni.bandstop(sign, 49.5, 50.5, 4, fs = freqs)
+    bfilt, afilt = signal.butter(4, freq / freqs, btype='highpass')
+    return signal.lfilter(bfilt, afilt, filtr)
+
+
+
+
+def calculo_valores(all_sign):
+    """function which calculates all values we want"""
+    signal_emg = all_sign[:, C_EMG]
+    signal_posicao = all_sign[:, C_POS]
+    signal_torque = all_sign[:, C_TOR]
     
-        if(os.path.isfile('M'+str(a)+'_MB_ESQ_ISOM_'+str(b)+'.txt')):
-            f = open("M"+str(a)+"_MB_ESQ_ISOM_" +str(b) +".txt", "r")
-            
-           # process.
-            
-            
-            a=loadtxt('M'+str(a)+'_MB_ESQ_ISOM_'+str(b)+'.txt')
-            nome='M'+str(a)+'_MB_ESQ_ISOM_'+str(b)+'.txt'
-    #f.close()
-  ''' 
-
-
-f = open("M5_MB_ESQ_ISOM_30.txt", "r")
-a=loadtxt('M5_MB_ESQ_ISOM_30.txt')
-f.close()
-
-#labels do primeiro ficheiro
-#Torque     0      
-#Velocidade 1     
-#Posicao    2    
-#Trigger    3     
-#Estimulacao4     
-#EMG BF     5 <-   
-#Torque     6     
-#Velocidade 7     
-#Posicao    8     
-#Radianos   9     
-#Factor Correccao 10
-#Torque Corrigido 11 <-
-#EMG B 12
-
-
-
-
-
-
-#FILTROS
-
-#fft do sinal - 50Hz presentes     
-#plotfft(Emg,FA)
-#figure()
-#t=arange(len(Emg))/FA
-#Emg=sin(2*pi*50*t)
-
-
-
-#filtros dimensionados
-def filtro(s,f, order=2, fs=FA, use_filtfilt=True):
+    filtrado = filtro(signal_emg, 10.0)
     
-     fs=float(fs)/2.0
-     g=bandstop(s,49.5,50.5,4,fs=fs) 
-     b, a = signal.butter(4, f / fs, btype='highpass')
-     return signal.lfilter(b, a, g)
-
-
-
-
-
-
-def calculo_valores():
-    #guardar os 3 canais importantes em 3 vectores
-    Emg=a[:,6] #6 ou 14 ver diferenca, qual uso agora?
-    Posicao=a[:,9]
-    Torque=a[:,7] # canal 15 e o torque rectificado
+    signal_torque = abs(signal_torque)
     
-    filtrado=filtro(Emg,10.0)
- 
+    results = [] #vector will have all calculated values
     
-    results=[] #vector que vai ter todos os valores obtidos na analise do sinal
+    #Maximum Force value
+    results += [{'Fmax (N.m)': max(signal_torque)}]
+    forca_max = max(signal_torque)
     
-    #Calculo do Valor de Forca Maxima - Fmax
-    results += [{'Fmax (N.m)': max(Torque)}]
-    Fmax=max(Torque)
+    #Time value
+    for i in range(0, len(signal_torque)):
+        if (signal_torque[i]>=forca_max):
+            tempo = i
     
-    #Retirar valor de tempo correspondente a Fmax
-    results += [{'Tempo (ms)': argmax(Torque)}]
-    Tempo=argmax(Torque)
+    results += [{'Tempo (ms)': tempo}]
+    #Tempo=argmax(Torque) -ESTA FUNCAO DA VALORES ERRADOS!!
     
-    #FCalcular intervalo de tempo:
-    
-    if(Tempo>INTERVALO/2):
-       t0=Tempo-INTERVALO/2
+    #Time interval values
+    if(tempo>INTERVALO/2):
+        t_0 = tempo - INTERVALO / 2
     else:
-       t0=0      
-    t1=Tempo+INTERVALO/2
+        t_0 = 0      
+    t_1 = tempo + INTERVALO/2
     
-    #Calculo do Valor de Forca Media - Fmean (com intervalo do 300 ms)
-    results += [{'Fmed (N.m)': mean(Torque[t0:t1])}]
+    #Fmean (intervalo : 300 ms)
+    results += [{'Fmed (N.m)': py.mean((signal_torque[t_0:t_1]))}]
     
-    #Calculo Root Mean Square (RMS)
-    results += [{'RMS': float(sqrt(sum(filtrado[t0:t1]**2))/INTERVALO)}]
-    rms_int=float(sqrt(sum(filtrado[t0:t1]**2))/INTERVALO)
+    #Root Mean Square (RMS)
+    results += [{'RMS': float(py.sqrt(sum(filtrado[t_0:t_1]**2))/INTERVALO)}]
+    rms_int = float(py.sqrt(sum(filtrado[t_0:t_1]**2))/INTERVALO)
     #rms_int2=mean(rms[t0:t1])
     
-    #Calculo da posicao media
-    results += [{'Angulo Medio': mean(Posicao[t0:t1])}]
+    #Medium Position
+    results += [{'Angulo Medio': py.mean(signal_posicao[t_0:t_1])}]
     
-    #Calculo de EMG_100%
-    results += [{'EMG_100%': filtrado[Tempo]}]
-    emg_100=filtrado[Tempo]
+    #EMG_100%
+    results += [{'EMG_100%': filtrado[tempo]}]
+    emg_100 = filtrado[tempo]
     
-    #Calculo do Incremento de Forca e da Forca Total
-    results += [{'Forca Total': Fmax+((Fmax*rms_int)/emg_100)}]
+    #Total Force
+    results += [{'Forca Total': forca_max + ((forca_max*rms_int)/emg_100)}]
     return results
     
 
-
-
-
-#Colocar valores em doc Excel
-
-def guardar_excel(nome):
+def guardar_excel(nome, results):
+    """save all values in a excel document"""
     wbk = xlwt.Workbook()
     sheet = wbk.add_sheet('sheet 1')
     
-    #primeiro linha depois coluna (comeca em 0)
-    sheet.write(0,0,'Descricao') 
-    sheet.write(0,1,'Valores') 
+    sheet.write(0, 0, 'Descricao') 
+    sheet.write(0, 1, 'Valores') 
 
-    results=calculo_valores()
-
-    i=0
-    for l in range(1,len(results)+1): #for que escreve os valores obtidos 
-        sheet.write(l,0,results[i].keys()[0])
-        sheet.write(l,1,str(results[i].values()[0]))
-        i=i+1
+    i = 0
+    #for que escreve os valores obtidos 
+    for line in range(1, len(results) + 1):
+        sheet.write(line, 0, results[i].keys()[0])
+        sheet.write(line, 1, str(results[i].values()[0]))
+        i= i + 1   
         
-    #salvar em doc excel
-    wbk.save(str(nome)+'.xls')
+    wbk.save(DIRECT + str(nome) +'.xls')
 
-
-
-
-
-#fazer automatico com for onde nome toma um nome proprio
-nome='../data/M5_MB_ESQ_ISOM_30'
-guardar_excel(str(nome))
 
