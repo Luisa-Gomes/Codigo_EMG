@@ -7,13 +7,13 @@ import novainstrumentation as ni
 from scipy import signal
 import os
 import process_aplic1 as pro
+import dictionary as dic
 #import matplotlib.pyplot as plt
 #import matplotlib.lines
 
 #Constants:
-FA = 1000.0 #sampling frequency
-INTERVALO = 300.0 #interval to calculate Fmed
-JANELA_RMS = 30.0
+FA, INTERVALO, LIMIT = dic.calculos()
+
 
 #space left, bottom, right, top, wspace, hspace
 SL = 0.10
@@ -23,28 +23,36 @@ ST = 0.95
 SW = 0.3
 SH = 0.6
 
-#Channels
-C_EMG = 6
-C_POS = 9
-C_TOR = 12
 
-DIRECT = '..\\..\\Data_Ap1\\' #Data folder is in Documents folder
-DIRECTORY_TO_SAVE = 'Plots_Ap1\\'#Folder to save all plots
+#DIRECT = '..\\..\\Data_Ap2\\' #Data folder is in Documents folder
+#DIRECTORY_TO_SAVE = 'Plots_Ap1\\'#Folder to save all plots
 
 
-def abrir_ficheiro():
+
+MOMENTO1, MOMENTO2, POSICAO1, POSICAO2, NUMERO_COLUNAS, NUMERO_DE_FICHEIROS = dic.aplicacao1()
+
+
+instrucao = dic.dicionario()
+
+def abrir_ficheiro(directoria_open):
     """AUTOMATIC OPENING FILES"""
-    for subject in range(0, 6): #search 7 subjects
-        for s_file in range(0, 101): #search files for each subject
-            
-            nome = 'M' + str(subject) + '_MB_ESQ_ISOM_' + str(s_file) + '_BF'
-            if(os.path.isfile(DIRECT + nome + '.txt')): #if file exists
-                load = loadtxt(DIRECT + nome+ '.txt')
-                plotscanais(nome +'_canais', load)
-                filtro(nome +'_filtro', load, 10.0)
-               
+    for moment in range(MOMENTO1, MOMENTO2 + 1): #search each moment
+        for sujeito in range(0, len(instrucao)): #search each subject
+            iniciais = instrucao.keys()[sujeito]
+            c_emg = instrucao.get(iniciais).values()[0][0]
+            c_pos = instrucao.get(iniciais).values()[0][1]
+            c_tor = instrucao.get(iniciais).values()[0][2]
+            directoria = instrucao.get(iniciais).values()[3]
+            for s_file in range(POSICAO1, POSICAO2 + 1): 
+                
+                nome = 'M' + str(moment) + '_' + iniciais + '_ESQ_ISOM_' + str(s_file) + '_BF'
+                if(os.path.isfile(directoria_open + nome + '.txt')): #if file exists
+                    load = loadtxt(directoria_open + nome+ '.txt')
+                    plotscanais(nome +'_canais', load, c_emg, c_pos, c_tor,directoria)
+                    filtro(nome +'_filtro', load, 10.0, directoria)
+                   
                  
-def plotscanais(nome, load):
+def plotscanais(nome, load, C_EMG, C_POS, C_TOR, DIRECTORY_TO_SAVE):
     """function to show all important signals with plots"""
     picture = plab.figure() #opening a figure to save later
     
@@ -52,10 +60,15 @@ def plotscanais(nome, load):
     posicao = load[:, C_POS]
     torque = abs(load[:, C_TOR])
     
-    results = pro.calculo_valores(load)
+    results = pro.calculo_valores(load, C_EMG, C_POS, C_TOR)
     
-    axisx = results[1].values()[0] #time calculated 
     axisy = results[0].values()[0] #Fmax calculated
+    
+    for i in range(0, len(torque)):
+        if (torque[i]>=axisy):
+            tempo = i    
+    
+    axisx = tempo #time calculated #not right
     
     #EMG plot
     plab.subplot(3, 1, 1)
@@ -78,7 +91,9 @@ def plotscanais(nome, load):
     plab.subplot(3, 1, 2)
     
     arrow = picture.add_subplot(312)   
-    axish = results[4].values()[0]
+    axish = results[3].values()[0]
+    
+
     arrow.annotate('Tempo', xy = (axisx, axish), xytext = (axisx, axish), 
                 arrowprops = dict(color='red', shrink = 0.5), 
                 horizontalalignment = 'center', verticalalignment = 'bottom',)
@@ -120,7 +135,7 @@ def plotscanais(nome, load):
 
 
 
-def filtro(nome, load, freq):
+def filtro(nome, load, freq, DIRECTORY_TO_SAVE):
     """function to show signals (original and filtrated) in time or as FFT"""
     
     freqs = FA
@@ -163,6 +178,6 @@ def filtro(nome, load, freq):
     
     picture.savefig(DIRECTORY_TO_SAVE + nome + '.pdf')
     
-abrir_ficheiro() 
+
 
 

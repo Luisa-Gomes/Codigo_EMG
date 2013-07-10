@@ -9,20 +9,12 @@ Created on Tue Jul 02 16:14:14 2013
 import pylab as py
 import novainstrumentation as ni
 from scipy import signal
-import xlwt
+import dictionary as dic
+
 
 
 #Constants
-FA = 1000.0 #sampling frequency
-INTERVALO = 300.0 #interval to calculate Fmed
-JANELA_RMS = 30.0
-
-#Channels
-C_EMG = 6
-C_POS = 9
-C_TOR = 7
-
-DIRECT = 'Analysis\\'# Data folder is in Documents file
+FA, INTERVALO, LIMIT = dic.calculos()
 
 
 def filtro(sign, freq, freqs = FA):
@@ -35,17 +27,19 @@ def filtro(sign, freq, freqs = FA):
 
 
 
-def calculo_valores(all_sign):
+def calculo_valores(all_sign, c_emg, c_pos, c_tor):
     """function which calculates all values we want"""
-    signal_emg = all_sign[:, C_EMG]
-    signal_posicao = all_sign[:, C_POS]
-    signal_torque = all_sign[:, C_TOR]
+    signal_emg = all_sign[:, c_emg]
+    signal_posicao = all_sign[:, c_pos]
+    signal_torque = all_sign[:, c_tor]
+
     
     filtrado = filtro(signal_emg, 10.0)
     
     signal_torque = abs(signal_torque)
     
     results = [] #vector will have all calculated values
+    
     
     #Maximum Force value
     results += [{'Fmax (N.m)': max(signal_torque)}]
@@ -56,7 +50,11 @@ def calculo_valores(all_sign):
         if (signal_torque[i]>=forca_max):
             tempo = i
     
-    results += [{'Tempo (ms)': tempo}]
+    #we want the time interval between F=10Nm and Fmax  
+    limite = py.find(signal_torque>10)
+    tempo_10m = limite[0]
+    intervalo_de_tempo = tempo - tempo_10m
+    results += [{'Tempo (ms)': intervalo_de_tempo}]
     #Tempo=argmax(Torque) -ESTA FUNCAO DA VALORES ERRADOS!!
     
     #Time interval values
@@ -69,38 +67,24 @@ def calculo_valores(all_sign):
     #Fmean (intervalo : 300 ms)
     results += [{'Fmed (N.m)': py.mean((signal_torque[t_0:t_1]))}]
     
-    #Root Mean Square (RMS)
-    results += [{'RMS': float(py.sqrt(sum(filtrado[t_0:t_1]**2))/INTERVALO)}]
-    rms_int = float(py.sqrt(sum(filtrado[t_0:t_1]**2))/INTERVALO)
-    #rms_int2=mean(rms[t0:t1])
-    
     #Medium Position
     results += [{'Angulo Medio': py.mean(signal_posicao[t_0:t_1])}]
+
+    #Root Mean Square (RMS)
+    results += [{'RMS': float(py.sqrt(sum(filtrado[t_0:t_1]**2))/INTERVALO)}]
+    #rms_int = float(py.sqrt(sum(filtrado[t_0:t_1]**2))/INTERVALO)
+    #rms_int2=mean(rms[t0:t1])
+    
+    
     
     #EMG_100%
-    results += [{'EMG_100%': filtrado[tempo]}]
-    emg_100 = filtrado[tempo]
+    #results += [{'EMG_100%': filtrado[tempo]}]
+    #emg_100 = filtrado[tempo]
     
-    #Total Force
-    results += [{'Forca Total': forca_max + ((forca_max*rms_int)/emg_100)}]
+    #Contribuition force and Total Force - apenas usada na segunda aplicacao:
+    #results += [{'Contribuicao da Forca': ((forca_max*rms_int)/emg_100)}]
+        
+    #results += [{'Forca Total': forca_max + ((forca_max*rms_int)/emg_100)}]
     return results
     
-
-def guardar_excel(nome, results):
-    """save all values in a excel document"""
-    wbk = xlwt.Workbook()
-    sheet = wbk.add_sheet('sheet 1')
-    
-    sheet.write(0, 0, 'Descricao') 
-    sheet.write(0, 1, 'Valores') 
-
-    i = 0
-    #for que escreve os valores obtidos 
-    for line in range(1, len(results) + 1):
-        sheet.write(line, 0, results[i].keys()[0])
-        sheet.write(line, 1, str(results[i].values()[0]))
-        i= i + 1   
-        
-    wbk.save(DIRECT + str(nome) +'.xls')
-
 
