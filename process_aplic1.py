@@ -74,7 +74,7 @@ def calculo_valores(all_sign, c_emg, c_pos, c_tor):
     results += [{'RMS': float(py.sqrt(sum(filtrado[t_0:t_1]**2))/INTERVALO)}]
     #rms_int = float(py.sqrt(sum(filtrado[t_0:t_1]**2))/INTERVALO)
     #rms_int2=mean(rms[t0:t1])
-    
+        
     
     
     #EMG_100%

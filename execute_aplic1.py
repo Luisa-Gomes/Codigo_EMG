@@ -20,32 +20,36 @@ def abrir_ficheiro(direct):
     
     results = []
     
-    numero_de_ficheiros=0
+    numero_de_ficheiros = 0
     for moment in range(MOMENTO1, MOMENTO2 + 1): #search each moment
         for sujeito in range(0, len(instrucao)): #search each subject
             iniciais = instrucao.keys()[sujeito]
             c_emg = instrucao.get(iniciais).values()[0][0]
             c_pos = instrucao.get(iniciais).values()[0][1]
             c_tor = instrucao.get(iniciais).values()[0][2]
-            directoria = instrucao.get(iniciais).values()[1]
+            directoria = direct +"\\Files_Application1"
+            if not(os.path.exists(directoria)):
+                os.mkdir( directoria)
             #directory to save our work aplication 1
             
             for s_file in range(POSICAO1, POSICAO2 + 1):
                 #search each file of each subject
-                nome = 'M' + str(moment) + '_'
+                nome = '/M' + str(moment) + '_'
                 nome =  nome + iniciais +'_ESQ_ISOM_' + str(s_file) + '_BF'
+                #print direct + nome +'.txt'
+                #print os.path.isfile(direct + nome + '.txt')
                 if(os.path.isfile(direct + nome + '.txt')):
                     results += [{'Nome': str(nome)}]
                     load = loadtxt(direct + nome + '.txt')
-                    numero_de_ficheiros=numero_de_ficheiros+1
+                    numero_de_ficheiros = numero_de_ficheiros+1
                     results += pro.calculo_valores(load, c_emg, c_pos, c_tor)
-            nome = 'M' + str(moment) + '_MB_ESQ_ISOM_BF'
+            nome = '/M' + str(moment) + '_MB_ESQ_ISOM_BF'
             #nome a guardar so para 1 excell   
-            guardar_excel(nome, results, directoria,numero_de_ficheiros)
+            guardar_excel(nome, results, directoria, numero_de_ficheiros)
 
 
 #guardar em apenas 1 doc EXCELL 
-def guardar_excel(nome, results, directori,numero_de_ficheirosa):
+def guardar_excel(nome, results, directoria, numero_de_ficheiros):
     """save all values in a excel document"""
     wbk = xlwt.Workbook()
     sheet = wbk.add_sheet('sheet 1')

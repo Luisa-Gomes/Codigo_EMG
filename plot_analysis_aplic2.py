@@ -17,9 +17,9 @@ import dictionary as dic
 
 
 FA, INTERVALO, LIMIT = dic.calculos()
-MOMENTO1, MOMENTO2, POSICAO1, POSICAO2, NUMERO_COLUNAS, NUMERO_DE_FICHEIROS = dic.aplicacao2()
+MOMENTO1, MOMENTO2, POSICAO1, POSICAO2, NUMERO_COLUNAS = dic.aplicacao2()
 
-instrucao = dic.dicionario()
+INSTRUCAO = dic.dicionario()
 
 
 #space left, bottom, right, top, wspace, hspace
@@ -34,63 +34,40 @@ SH = 0.6
 def abrir_ficheiro(directoria_open):
     """AUTOMATIC OPENING FILES"""
     for moment in range(MOMENTO1, MOMENTO2 + 1): #search each moment
-        for sujeito in range(0, len(instrucao)): #search each subject
-            iniciais = instrucao.keys()[sujeito]
-            c_emg = instrucao.get(iniciais).values()[0][0]
-            c_pos = instrucao.get(iniciais).values()[0][1]
-            c_tor = instrucao.get(iniciais).values()[0][2]
-            directoria = instrucao.get(iniciais).values()[3]
+        for sujeito in range(0, len(INSTRUCAO)): #search each subject
+            iniciais = INSTRUCAO.keys()[sujeito]
+            c_emg = INSTRUCAO.get(iniciais).values()[0][0]
+            c_pos = INSTRUCAO.get(iniciais).values()[0][1]
+            c_tor = INSTRUCAO.get(iniciais).values()[0][2]
+            dire = directoria_open+"\\Files_Plots"
+            if not(os.path.exists(dire)):
+                os.mkdir( dire)
             for s_file in range(POSICAO1, POSICAO2 + 1): 
-                nome = 'M' + str(moment) + '_' + iniciais + '_ESQ_ISOM_' + str(s_file)
-                if(os.path.isfile(directoria_open + nome + '.txt')): #if file exists
-                    load = loadtxt(directoria_open + nome+ '.txt')
-                    plotscanais(nome +'_canais', load, c_emg, c_pos, c_tor, directoria)
-                    filtro(nome +'_filtro', load, 10.0, directoria)
+                nom = '/M' + str(moment) + '_'
+                nom = nom + iniciais + '_ESQ_ISOM_' + str(s_file)
+                if(os.path.isfile(directoria_open + nom + '.txt')): 
+                    #if file exists
+                    load = loadtxt(directoria_open + nom+ '.txt')
+                    plotscanais(nom+'_canais', load, c_emg, c_pos, c_tor, dire)
+                    filtro(nom +'_filtro', load, 10.0, dire)
                
                  
-def plotscanais(nome, load, C_EMG, C_POS, C_TOR, directoria):
+def plotscanais(nome, load, c_emg, c_pos, c_tor, directoria):
     """function to show all important signals with plots"""
     picture = plab.figure() #opening a figure to save later
     
-    emg = load[:, C_EMG]
-    posicao = load[:, C_POS]
-    torque = abs(load[:, C_TOR])
+    emg = load[:, c_emg]
+    posicao = load[:, c_pos]
+    torque = abs(load[:, c_tor])
     
-    results = pro.calculo_valores(load, C_EMG, C_POS, C_TOR)
+    results = pro.calculo_valores(load, c_emg, c_pos, c_tor)
     
     axisy = results[0].values()[0] #Fmax calculated
     
     for i in range(0, len(torque)):
         if (torque[i]>=max(torque)):
             tempo = i    
-    
-    
-    #print 'valor de tempo antes: '
-    #print tempo
-    
-    
-    '''
-    for a in range(0, len(torque)):
-        if (abs(torque[tempo-INTERVALO/2] - torque[tempo]) >= LIMIT 
-        or abs(torque[tempo+INTERVALO/2] - torque[tempo]) >= LIMIT):
-            torque[tempo]=0.0
-            for i in range(0, len(torque)): #search time of Fmax
-                if (torque[i]>=max(torque)):
-                    print "hi"
-                    tempo = i 
-        else:
-            break
-    '''
-    
-     
-    #print 'valor de tempo depois: '
-    #print tempo
-    
-    
-    
-    
-    
-    
+ 
     
     axisx = tempo #time calculated
     
