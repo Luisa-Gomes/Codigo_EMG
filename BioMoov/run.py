@@ -24,7 +24,7 @@ class GUI(tki.Tk):
         
         tki.Tk.__init__(self)
         
-        im = "C:\\Users\\Luisa\\Documents\\GitHub\\Codigo_EMG\\frontimage.jpg"
+        im = "frontimage.jpg"
         img = ImageTk.PhotoImage(Image.open(im))
         panel = tki.Label(self, image = img)
         panel.pack(side = "bottom", fill = "both", expand = "yes")
